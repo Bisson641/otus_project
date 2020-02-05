@@ -1,0 +1,9 @@
+192.168.1.1 proxy1 proxy1
+192.168.1.2 proxy2 proxy2
+192.168.1.11 web1 web1
+192.168.1.12 web2 web2
+192.168.1.21 db1 db1
+192.168.1.22 db2 db2
+192.168.1.31 mail1 mail1
+192.168.1.32 mail2 mail2
+127.0.0.1   localhost localhost.localdomain

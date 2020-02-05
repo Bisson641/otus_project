@@ -1,0 +1,62 @@
+---
+
+ - name: Common config
+   hosts: common
+   become: yes
+   roles:
+     - common
+
+ - name: Proxy-server configuration
+   hosts: proxy
+   become: true
+   roles:
+      - proxy
+
+ - name: Web-server configuration
+   hosts: web
+   become: true
+   roles:
+      - web
+
+ - name: DB-server configuration
+   hosts: db
+   become: true
+   roles:
+      - db
+
+ - name: Logger-server configuration
+   hosts: logger
+   become: true
+   roles:
+      - logger
+
+ - name: Prepare cluster
+   hosts: cluster
+   become: true
+   roles:
+      - cluster
+
+ - name: Make cluster
+   hosts: proxy 
+   become: true
+   tasks:
+   - name: Make cluster 
+     script: scripts/make-cluster.sh
+     when: ansible_hostname == "proxy1"
+ 
+ - name: Backup clients configuration
+   hosts: backup_client
+   become: true
+   roles:
+      - backup_client
+
+
+ - name: Backup server configuration
+   hosts: backup
+   become: true
+   roles:
+     - role: backup_server
+       vars:
+         root_password: "!Qaz2wsx"
+        
+

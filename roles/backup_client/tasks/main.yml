@@ -1,0 +1,27 @@
+---
+
+ - name: install bacula-client
+   yum:
+     name: bacula-client
+     state: present
+
+ - name: Place bacula-client configuration
+   template:
+     src: etc/bacula/bacula-fd.conf
+     dest: /etc/bacula/bacula-fd.conf
+     mode: 0640
+     owner: root
+     group: root
+
+ - name: bacula-client start
+   systemd:
+     name: bacula-fd
+     enabled: yes
+     state: started
+
+ - name: Configure firewall
+   firewalld:
+     service: bacula-client
+     permanent: yes
+     state: enabled
+     immediate: yes

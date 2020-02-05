@@ -1,0 +1,43 @@
+---
+
+   - name: Install cluster pkgs
+     yum: 
+       name:
+        - pcs
+        - pacemaker
+        - corosync
+       state: present
+
+   - name: place pcsd configuration
+     template:
+       src: etc/sysconfig/pcsd
+       dest: /etc/sysconfig/pcsd
+       owner: root
+       group: root
+       mode: 0644
+
+   - name: Enable and start pcsd
+     systemd:
+       name: pcsd
+       enabled: yes
+       state: started
+
+   - name: Set hacluster password
+     script: files/set_passwd.sh
+
+   - name: Enable and start corosync
+     systemd:
+       name: corosync
+       enabled: yes
+
+   - name: Enable and start pacemaker
+     systemd:
+       name: pacemaker
+       enabled: yes
+
+   - name: Set firewall rules for cluster's ports.
+     firewalld:
+       state: enabled
+       service: high-availability
+       permanent: yes
+       immediate: yes

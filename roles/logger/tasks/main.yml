@@ -1,0 +1,28 @@
+---
+
+ - name: createcluster log folder
+   file:
+     path: /var/log/cluster_log
+     state: directory
+     owner: root
+     group: root
+     mode: 0755
+
+ - name: Place rsyslog configuration
+   template:
+     src: etc/rsyslog.conf
+     dest: /etc/rsyslog.conf
+     owner: root
+     group: root
+
+ - name: rsyslog restart
+   systemd:
+     name: rsyslog
+     state: restarted
+
+ - name: Configure firewall
+   firewalld:
+     port: 514/tcp
+     permanent: yes
+     state: enabled
+     immediate: yes

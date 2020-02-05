@@ -1,0 +1,154 @@
+---
+
+ - name: create partition for backups
+   parted:
+     device: /dev/sdb
+     number: 1
+     state: present
+
+ - name: make filesystem 
+   filesystem:
+     fstype: ext4
+     dev: /dev/sdb1
+
+ - name: Install packages
+   yum: 
+     name:
+      - mariadb-server
+      - MySQL-python
+      - bacula-director
+      - bacula-console
+      - bacula-client
+      - bacula-storage
+     state: present
+
+ - name: create backup folder
+   file:
+     path: /mnt/backups
+     state: directory
+
+ - copy:
+      src: files/mysql_bacula_backup.sh
+      dest: /root/mysql_bacula_backup.sh
+      mode: 0770
+      owner: root
+      group: bacula
+
+ - name: mount volume for backups
+   mount:
+     boot: no
+     src: /dev/sdb1
+     path: /mnt/backups
+     fstype: ext4
+     state: mounted
+
+ - name: set permissions for backup folder
+   file:
+     path: /mnt/backups
+     owner: bacula
+     group: bacula
+     state: directory
+
+ - name: MySQL service enable && start
+   systemd:
+     name: mariadb
+     enabled: yes
+     state: started
+
+ - name: Prepare MYSQL DB
+   script: files/mysql.sh
+
+ - name: Set the root password 
+   mysql_user: login_user=root login_password="" user=root password="{{ root_password }}"
+
+ - name: Set the bacula password 
+   mysql_user: login_user=root login_password="{{ root_password }}" user=bacula password="bacula"
+
+ - name: Secure the root user for IPV6 localhost (::1)
+   mysql_user: login_user=root login_password="{{ root_password }}" user=root password="{{ root_password }}" host="::1"
+
+ - name: Secure the root user for IPV4 localhost (127.0.0.1)
+   mysql_user: login_user=root login_password="{{ root_password }}" user=root password="{{ root_password }}" host="127.0.0.1"
+
+ - name: Secure the root user for localhost domain
+   mysql_user: login_user=root login_password="{{ root_password }}" user=root password="{{ root_password }}" host="localhost"
+
+ - name: Secure the root user for server_hostname domain
+   mysql_user: login_user=root login_password="{{ root_password }}" user=root password="{{ root_password }}" host="{{ ansible_fqdn }}"
+
+ - name: Deletes anonymous server user
+   mysql_user: login_user=root login_password="{{ root_password }}" user="" host_all=yes state=absent
+
+ - name: Removes the test database
+   mysql_db: login_user=root login_password="{{ root_password }}" db=test state=absent
+
+ - name: Place Bacula configuration
+   template:
+     src: "etc/bacula/bacula-dir.conf"
+     dest: "/etc/bacula/bacula-dir.conf"
+     mode: 0640
+     owner: bacula
+     group: bacula
+
+ - name: Place Bacula configuration
+   template:
+     src: "etc/bacula/bacula-sd.conf"
+     dest: "/etc/bacula/bacula-sd.conf"
+     mode: 0640
+     owner: bacula
+     group: bacula
+
+ - name: Place Bacula configuration
+   template:
+     src: "etc/bacula/bconsole.conf"
+     dest: "/etc/bacula/bconsole.conf"
+     mode: 0640
+     owner: bacula
+     group: bacula
+
+ - name: Place Bacula configuration
+   template:
+     src: "etc/bacula/bacula-fd.conf"
+     dest: "/etc/bacula/bacula-fd.conf"
+     mode: 0640
+     owner: bacula
+     group: bacula
+
+ - name: Configure firewall for bacula server
+   firewalld:
+     service: bacula 
+     permanent: yes
+     state: enabled
+     immediate: yes
+
+ - name: Configure firewall for bacula client
+   firewalld:
+     service: bacula-client
+     permanent: yes
+     state: enabled
+     immediate: yes
+
+ - name: Chande default db
+   alternatives:
+     name: libbaccats.so
+     path: /usr/lib64/libbaccats-mysql.so
+
+
+ - name: Bacula-dir start
+   systemd:
+     name: bacula-dir
+     enabled: yes
+     state: started
+
+ - name: Bacula-sd start
+   systemd:
+     name: bacula-sd
+     enabled: yes
+     state: started
+
+ - name: Bacula-client restart
+   systemd:
+     name: bacula-fd
+     enabled: yes
+     state: started
+

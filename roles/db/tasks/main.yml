@@ -1,0 +1,103 @@
+---
+
+ - name: Install programms
+   yum:
+     name:
+      - bacula-client
+     state: present
+
+ - name: Configure firewall mysql
+   firewalld:
+     port: 3306/tcp
+     permanent: yes
+     state: enabled
+     immediate: yes
+
+ - name: Configure firewall bacula
+   firewalld:
+     service: bacula-client
+     permanent: yes
+     state: enabled
+     immediate: yes
+
+ - name: Install MySQL repo
+   yum:
+     name: https://dev.mysql.com/get/mysql80-community-release-el7-1.noarch.rpm
+     state: present
+
+ - name: Install MySQL-Server
+   yum:
+     name:
+      - mysql-community-server
+     state: present
+
+ - name: Place rsyslog configuration
+   template:
+     src: etc/rsyslog.conf
+     dest: /etc/rsyslog.conf
+     owner: root
+     group: root
+
+ - name: rsyslog restart
+   systemd:
+     name: rsyslog
+     state: restarted
+
+ - name: mysqld start
+   systemd:
+     name: mysqld
+     state: started
+
+ - name: config my.cnf
+   template:
+     src: etc/{{ ansible_hostname }}.my.cnf
+     dest: /etc/my.cnf
+     owner: root
+     group: root
+
+ - name: create mysql log folder
+   file:
+     path: /var/log/mysql
+     state: directory
+     owner: mysql
+     group: mysql
+     mode: 0775
+
+ - name: mysqld restart
+   systemd:
+     name: mysqld
+     state: restarted
+
+ - name: Copy sql_bkp files
+   copy:
+      src: files/mysql_wordpress_backup.sh
+      dest: /root/mysql_wordpress_backup.sh
+      mode: 0750
+      owner: root
+      group: bacula
+
+ - name: Copy sql dump file
+   copy:
+      src: files/wordpress.sql
+      dest: /home/vagrant/wordpress.sql
+      owner: vagrant
+      group: vagrant
+
+ - name: Prepare MYSQL DB
+   script: files/{{ ansible_hostname }}.mysql.sh
+
+ - name: mysqld restart
+   systemd:
+     name: mysqld
+     state: restarted
+                                            
+ - name: Configure master - slave
+   script: files/m-s.mysql.sh
+   when: ansible_hostname == "db1"
+                                     
+ - name: Stop and disable mysqld
+   systemd:
+     name: mysqld
+     enabled: no
+     state: stopped
+

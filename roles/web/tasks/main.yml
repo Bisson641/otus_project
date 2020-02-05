@@ -1,0 +1,79 @@
+---
+
+   - name: Install programms
+     yum:
+       name:    
+        - httpd
+        - lsyncd
+        - php
+        - php-curl
+        - php-mcrypt 
+        - php-cli 
+        - php-fpm
+        - php-mysql
+        - bacula-client
+       state: present
+
+   - name: Configure firewall http
+     firewalld:
+       service: http
+       permanent: yes
+       state: enabled
+       immediate: yes
+
+   - name: Configure firewall bacula
+     firewalld:
+       service: bacula-client
+       permanent: yes
+       state: enabled
+       immediate: yes
+
+   - name: Extract wordpress files
+     unarchive:
+       src: files/wordpress.zip
+       dest: /var/www/html
+       owner: apache
+       group: apache
+
+   - name: Place wordpress configuration
+     copy:
+       src: files/wp-config.php
+       dest: /var/www/html/wordpress/wp-config.php
+       owner: apache
+       group: apache
+       mode: 0640
+       force: yes
+
+   - name: Place httpd configuration
+     template:
+       src: etc/httpd.conf
+       dest: /etc/httpd/conf/httpd.conf
+       owner: root
+       group: root
+
+   - name: Place rsyslog configuration
+     template:
+       src: etc/rsyslog.conf
+       dest: /etc/rsyslog.conf
+       owner: root
+       group: root
+
+   - name: rsyslog restart
+     systemd:
+       name: rsyslog
+       state: restarted
+
+   - name: Place rsync configuration
+     template:
+       src: etc/{{ rsync_filename }}
+       dest: /etc/rsyncd.conf
+       owner: root
+       group: root
+
+   - name: Place lsync configuration
+     template:
+       src: etc/{{ lsync_filename }}
+       dest: /etc/lsyncd.conf
+       owner: root
+       group: root
+
