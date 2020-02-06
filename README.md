@@ -18,6 +18,8 @@
 
 # Работоспособность
 
-Поднимаем кластер 'vagrant up && ansible-playbook cluster.yml'
+Поднимаем кластер `vagrant up && ansible-playbook cluster.yml`
 
-# Редактируем /etc/ssh/sshd_config
+Пробросим порт 80 c proxy1 на на домашнюю ОС `sudo ssh -N -L 8080:192.168.10.100:80 vagrant@127.0.0.1 -p 2222`
+
+Перейдем по ссылке для и откроем установщик [wordpress](http://127.0.0.1:8080)
