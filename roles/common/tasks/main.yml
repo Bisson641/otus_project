@@ -6,11 +6,6 @@
        update_cache: yes
        state: present
 
-#   - name: Update packages
-#     yum: 
-#       name: "*"
-#       state: latest
-
    - name: Install packages
      yum: 
        name:
@@ -67,3 +62,8 @@
        enabled: yes
        state: started
 
+   - name: Edit sshd_config
+     shell: sed -i 's/#PasswordAuthentication yes/PasswordAuthentication no/g' /etc/ssh/sshd_config
+
+   - name: Restart sshd
+     shell: service sshd restart
