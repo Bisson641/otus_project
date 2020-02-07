@@ -10,6 +10,10 @@
 * скрипты резервного копирования; 
 * центральный сервер сбора логов (Rsyslog/Journald/ELK). 
 
+### Схема
+
+![schema](https://github.com/mariosmolov/otus-project/blob/master/img/2020-02-07_10-19-07.png)
+
 ### Описание хостов
 
 * proxy1 - балансировка web1, web2
