@@ -36,3 +36,17 @@
 Пробросим порт 80 c proxy1 на на домашнюю ОС `sudo ssh -N -L 8080:192.168.10.100:80 vagrant@127.0.0.1 -p 2222` (P.S. пока не понял почему не открывается сама страница [http://192.168.10.100/wordpress](http://192.168.10.100/wordpress))
 
 **Перейдем по ссылке для и откроем установщик [wordpress](http://127.0.0.1:8080/wordpress)**
+
+<details>
+  <summary>Проверка балансировки прокси</summary>
+  
+  Проверяем порты на первой ноде и на второй. Выключаем первую ноду. Проверяем порты на второй. Видим, что IP балансировки переехал на вторую ноду.
+  
+  ![1](https://github.com/mariosmolov/otus-project/blob/master/img/2020-02-07_08-19-50.png)
+
+  ![2](https://github.com/mariosmolov/otus-project/blob/master/img/2020-02-07_08-20-13.png)
+  
+  После перезагрузки первой ноды IP вернулся на первую ноду
+  
+  ![3](https://github.com/mariosmolov/otus-project/blob/master/img/2020-02-07_08-36-53.png)
+</details>
