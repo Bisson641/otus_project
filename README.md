@@ -186,3 +186,20 @@ target     prot opt source               destination
   ```
 
 </details>
+
+<details>
+  <summary>Установка Wordpress</summary>
+  
+  Как говорилось выше, пробросим порт 80 c proxy1 на на домашнюю ОС `sudo ssh -N -L 8080:192.168.10.100:80 vagrant@127.0.0.1 -p 2222`.
+  Перейдем по ссылке [wordpress](http://127.0.0.1:8080/wordpress)
+  
+  ![6](https://github.com/mariosmolov/otus-project/blob/master/img/2020-02-07_09-13-57.png)
+
+  ![8](https://github.com/mariosmolov/otus-project/blob/master/img/2020-02-07_09-16-13.png)
+  
+  Попадем в админку и можем создавать страницы
+  
+  ![9](https://github.com/mariosmolov/otus-project/blob/master/img/2020-02-07_09-18-51.png)
+  
+
+</details>
