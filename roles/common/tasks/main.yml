@@ -63,7 +63,7 @@
        state: started
 
    - name: Edit sshd_config
-     shell: sed -i 's/#PasswordAuthentication yes/PasswordAuthentication no/g' /etc/ssh/sshd_config
+     shell: sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config
 
    - name: Restart sshd
      shell: service sshd restart
