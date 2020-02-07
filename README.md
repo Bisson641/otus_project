@@ -46,3 +46,15 @@
   
   ![3](https://github.com/mariosmolov/otus-project/blob/master/img/2020-02-07_08-36-53.png)
 </details>
+
+<details>
+  <summary>Проверка балансировки БД</summary>
+  
+  Проверяем порты на первой ноде и на второй. Выключаем первую ноду. Проверяем порты на второй.
+  
+  ![4](https://github.com/mariosmolov/otus-project/blob/master/img/2020-02-07_08-50-30.png)
+
+  ![5](https://github.com/mariosmolov/otus-project/blob/master/img/2020-02-07_08-50-39.png)
+  
+
+</details>
