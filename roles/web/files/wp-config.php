@@ -23,13 +23,13 @@
 define('DB_NAME', 'wordpress');
 
 /** Имя пользователя MySQL */
-define('DB_USER', 'wordpress');
+define('DB_USER', 'wpuser');
 
 /** Пароль к базе данных MySQL */
-define('DB_PASSWORD', 'wordpress');
+define('DB_PASSWORD', 'WordPress123)');
 
 /** Имя сервера MySQL */
-define('DB_HOST', '192.168.1.20');
+define('DB_HOST', 'localhost');
 
 /** Кодировка базы данных для создания таблиц. */
 define('DB_CHARSET', 'utf8mb4');
@@ -63,7 +63,7 @@ define('NONCE_SALT',       'z2skSEM53$ >b16~wn3@?1kDrTB]s +5J07v~;S((fY(p$ji4HX7
  * Можно установить несколько сайтов в одну базу данных, если использовать
  * разные префиксы. Пожалуйста, указывайте только цифры, буквы и знак подчеркивания.
  */
-$table_prefix  = 'wp_';
+ $table_prefix  = 'wp_';
 
 /**
  * Для разработчиков: Режим отладки WordPress.

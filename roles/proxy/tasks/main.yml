@@ -1,41 +1,28 @@
 ---
-
-   - name: Configure firewall
-     firewalld:
-       port: 80/tcp
-       permanent: yes
-       state: enabled
-       immediate: yes
-
-   - name: Configure firewall
-     firewalld:
-       port: 8080/tcp
-       permanent: yes
-       state: enabled
-       immediate: yes
-
-   - name: Install HAproxy 
-     yum:
+    - name: HAProxy
+      yum: 
        name: haproxy
        state: present
 
-   - name: Place haproxy configuration
-     template:
-       src: etc/haproxy/haproxy.cfg
+    - name: HAProxy config
+      template:
+       src: etc/haproxy/{{ ansible_hostname }}.cfg
        dest: /etc/haproxy/haproxy.cfg
        owner: root
        group: root
        mode: 0644
 
-   - name: Place rsyslog configuration
-     template:
-       src: etc/rsyslog.conf
-       dest: /etc/rsyslog.conf
-       owner: root
-       group: root
+    - name: haproxy restart
+      systemd:
+        name: haproxy
+        state: restarted
 
-   - name: rsyslog restart
-     systemd:
-       name: rsyslog
-       state: restarted
 
+    - name: Configure firewall
+      firewalld:
+       port: 80/tcp
+       permanent: yes
+       state: enabled
+       immediate: yes
+
+    

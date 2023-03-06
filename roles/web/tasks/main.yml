@@ -1,43 +1,73 @@
 ---
 
+ 
+   - name: download repo download
+     get_url:
+      url: https://rpms.remirepo.net/enterprise/remi-release-7.rpm
+      validate_certs: false
+      dest: /tmp
+
+   - name: Install repo
+     yum:
+       name: /tmp/remi-release-7.rpm
+       update_cache: yes
+       state: present
+
+   - name: Install programms
+     yum:
+       name:
+        - yum-utils
+       state: present
+
+
+   - name: yum config manager
+     ansible.builtin.shell: yum-config-manager --enable remi-php74
+
+
    - name: Install programms
      yum:
        name:    
         - httpd
         - lsyncd
         - php
-        - php-curl
-        - php-mcrypt 
         - php-cli 
         - php-fpm
         - php-mysql
+        - php-mcrypt
+        - php-gd
+        - php-curl
         - bacula-client
+        - unzip
        state: present
 
    - name: Configure firewall http
      firewalld:
-       service: http
-       permanent: yes
-       state: enabled
-       immediate: yes
+        service: http
+        permanent: yes
+        state: enabled
+        immediate: yes
 
-   - name: Configure firewall bacula
-     firewalld:
-       service: bacula-client
-       permanent: yes
-       state: enabled
-       immediate: yes
+   - name: download wordpress
+     get_url:
+      url: https://wordpress.org/latest.zip
+      validate_certs: false
+      dest: /tmp
+      owner: root
+      group: root
 
    - name: Extract wordpress files
      unarchive:
-       src: files/wordpress.zip
+       remote_src: yes
+       src: /tmp/wordpress-6.1.1.zip
        dest: /var/www/html
        owner: apache
        group: apache
 
+
    - name: Place wordpress configuration
-     copy:
-       src: files/wp-config.php
+     tags: wpconf
+     template:
+       src: /home/bakai/otus/project/roles/web/files/wp-config.php
        dest: /var/www/html/wordpress/wp-config.php
        owner: apache
        group: apache
@@ -45,15 +75,16 @@
        force: yes
 
    - name: Place httpd configuration
+     tags: httpd
      template:
-       src: etc/httpd.conf
-       dest: /etc/httpd/conf/httpd.conf
+       src: /home/bakai/otus/project/roles/web/templates/etc/httpd.confi
+       dest: /etc/httpd.conf
        owner: root
        group: root
 
    - name: Place rsyslog configuration
      template:
-       src: etc/rsyslog.conf
+       src: /home/bakai/otus/project/roles/web/templates/etc/rsyslog.conf
        dest: /etc/rsyslog.conf
        owner: root
        group: root
@@ -65,15 +96,54 @@
 
    - name: Place rsync configuration
      template:
-       src: etc/{{ rsync_filename }}
+       src: /home/bakai/otus/project/roles/web/templates/etc/{{ ansible_hostname }}.rsyncd.conf
        dest: /etc/rsyncd.conf
        owner: root
        group: root
 
    - name: Place lsync configuration
      template:
-       src: etc/{{ lsync_filename }}
+       src: /home/bakai/otus/project/roles/web/templates/etc/{{ ansible_hostname }}.lsyncd.conf
        dest: /etc/lsyncd.conf
        owner: root
        group: root
 
+   - name: start services
+     tags: services
+     systemd:
+       name: httpd
+       enabled: true
+       masked: no
+       state: started
+
+   - name: start services
+     tags: services
+     systemd:
+       name: rsyncd
+       enabled: true
+       masked: no
+       state: started    
+
+   - name: start services
+     tags: services
+     systemd:
+       name: lsyncd
+       enabled: true
+       masked: no
+       state: started
+
+   - name: start services
+     tags: services
+     systemd:
+       name: bacula-fd.service
+       enabled: true
+       masked: no
+       state: started
+
+   - name: start services
+     tags: services
+     systemd:
+       name: php-fpm.service
+       enabled: true
+       masked: no
+       state: started

@@ -1,0 +1,41 @@
+---
+   - name: Common config
+     hosts: all
+     become: yes
+     roles:
+       - common
+       - zabbix
+
+   - name: Web-server configuration
+     hosts: back
+     become: yes
+     roles:
+       - web
+       - db
+
+   - name: proxy config
+     hosts: front
+     become: yes
+     roles:
+       - proxy
+
+
+
+   - name: rsyslog config
+     hosts: alert
+     become: yes
+     roles:
+       - logger
+
+   - name: zabbix config
+     hosts: log
+     become: yes
+     roles:
+       - alert
+
+
+   - name: Zabbix agent
+     hosts: all
+     become: yes
+     roles:
+       - zabbix

@@ -2,7 +2,7 @@
 
  - name: createcluster log folder
    file:
-     path: /var/log/cluster_log
+     path: /var/log/hosts
      state: directory
      owner: root
      group: root

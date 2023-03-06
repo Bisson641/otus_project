@@ -1,0 +1,68 @@
+---
+
+   - name: Install epel
+     yum: 
+       name: epel-release
+       update_cache: yes
+       state: present
+
+   - name: Install packages
+     yum: 
+       name:
+        - nano
+        - net-tools
+        - wget
+        - unzip
+        - mc
+        - htop
+       state: present
+
+   - name: place hosts configuration
+     template:
+       src: etc/hosts
+       dest: /etc/hosts
+       owner: root
+       group: root
+       mode: 0644
+
+   - name: Set timezone
+     timezone:
+       name: Europe/Moscow
+
+   - name: Disable IPv6
+     sysctl:
+       name: net.ipv6.conf.all.disable_ipv6
+       value: 1
+
+   - name: Disable IPv6
+     sysctl:
+       name: net.ipv6.conf.default.disable_ipv6
+       value: 1
+
+   - name: Disable IPv6
+     sysctl:
+       name: net.ipv6.conf.lo.disable_ipv6
+       value: 1
+       reload: yes
+
+   - name: Disable selinux
+     selinux:
+       state: disabled
+
+   - name: Enable and start ntpd
+     systemd:
+       name: ntpd
+       enabled: yes
+       state: started
+
+   - name: Enable and start firewalld
+     systemd:
+       name: firewalld
+       enabled: yes
+       state: started
+
+   - name: Edit sshd_config
+     shell: sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config
+
+   - name: Restart sshd
+     shell: service sshd restart

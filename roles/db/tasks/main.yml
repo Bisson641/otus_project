@@ -1,103 +1,154 @@
 ---
 
- - name: Install programms
-   yum:
-     name:
-      - bacula-client
-     state: present
+   - name: Install Bacula-client
+     yum:
+      name:
+       - bacula-client
+      state: present
 
- - name: Configure firewall mysql
-   firewalld:
-     port: 3306/tcp
-     permanent: yes
-     state: enabled
-     immediate: yes
+   - name: Configure firewall mysql
+     firewalld:
+       port: 3306/tcp
+       permanent: yes
+       state: enabled
+       immediate: yes
 
- - name: Configure firewall bacula
-   firewalld:
-     service: bacula-client
-     permanent: yes
-     state: enabled
-     immediate: yes
+   - name: Configure firewall bacula
+     firewalld:
+       service: bacula-client
+       permanent: yes
+       state: enabled
+       immediate: yes
 
- - name: Install MySQL repo
-   yum:
-     name: https://dev.mysql.com/get/mysql80-community-release-el7-1.noarch.rpm
-     state: present
+   - name: Install MySQL repo download
+     get_url: 
+      url: https://repo.percona.com/yum/percona-release-latest.noarch.rpm
+      validate_certs: false
+      dest: /tmp
 
- - name: Install MySQL-Server
-   yum:
-     name:
-      - mysql-community-server
-     state: present
+   - name: Install repo
+     yum:
+       name: /tmp/percona-release-latest.noarch.rpm
+       update_cache: yes
+       state: present
 
- - name: Place rsyslog configuration
-   template:
-     src: etc/rsyslog.conf
-     dest: /etc/rsyslog.conf
-     owner: root
-     group: root
+   - name: Shell command
+     ansible.builtin.shell: percona-release setup pdps-8.0
 
- - name: rsyslog restart
-   systemd:
-     name: rsyslog
-     state: restarted
 
- - name: mysqld start
-   systemd:
-     name: mysqld
-     state: started
+   - name: Install MySQL-Server
+     yum:
+      name:
+       - percona-server-server
+       - MySQL-python
+      state: present
 
- - name: config my.cnf
-   template:
-     src: etc/{{ ansible_hostname }}.my.cnf
-     dest: /etc/my.cnf
-     owner: root
-     group: root
+   
+   - name: config my.cnf
+     template:
+       src: templates/etc/{{ ansible_hostname }}.my.cnf
+       dest: /etc/my.cnf
+       owner: root
+       group: root
+   
+   - name: create mysql log folder
+     file:
+       path: /var/log/mysql
+       state: directory
+       owner: mysql
+       group: mysql
+       mode: 0775
 
- - name: create mysql log folder
-   file:
-     path: /var/log/mysql
-     state: directory
-     owner: mysql
-     group: mysql
-     mode: 0775
+   - name: mysqld restart
+     systemd:
+       name: mysqld
+       state: restarted
+     
 
- - name: mysqld restart
-   systemd:
-     name: mysqld
-     state: restarted
+   - name: start mysql
+     systemd:
+       name: mysql
+       state: started
+       enabled: yes
 
- - name: Copy sql_bkp files
-   copy:
-      src: files/mysql_wordpress_backup.sh
-      dest: /root/mysql_wordpress_backup.sh
-      mode: 0750
-      owner: root
-      group: bacula
+   - name: find mysql password
+     shell:
+      cmd: cat /var/log/mysqld.log | grep 'root@localhost:' | awk '{print $13}'
+     register: root_password
 
- - name: Copy sql dump file
-   copy:
-      src: files/wordpress.sql
-      dest: /home/vagrant/wordpress.sql
-      owner: vagrant
-      group: vagrant
+   - name: update expired root user password
+     tags: pswd
+     command: mysql --user root --password='{{ root_password.stdout }}' --connect-expired-password --execute="ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '{{ mysql_root_password }}';"
 
- - name: Prepare MYSQL DB
-   script: files/{{ ansible_hostname }}.mysql.sh
+    
+   
+   - name: CREATE USER GRANT REPLICATION SLAVE
+     command: mysql -uroot --password='{{ mysql_root_password }}' -e "CREATE USER 'replica'@'%' IDENTIFIED WITH mysql_native_password BY '{{ mysql_repl_password }}'; GRANT REPLICATION SLAVE ON *.* TO 'replica'@'%'; FLUSH PRIVILEGES;"
+     tags: permission
+     when: ansible_hostname == 'websrv1'
+ 
+    
+   - name: Changemaster
+     mysql_replication:
+        mode: changemaster
+        master_host: 192.168.56.42
+        master_port: 3306
+        master_user: replica
+        master_password: '{{ mysql_repl_password }}'
+        config_file: /etc/my.cnf
+        master_auto_position: true
+        login_user: root
+        login_password: '{{ mysql_root_password }}'
+     when: ansible_hostname == 'websrv2'
+     
+    
 
- - name: mysqld restart
-   systemd:
-     name: mysqld
-     state: restarted
-                                            
- - name: Configure master - slave
-   script: files/m-s.mysql.sh
-   when: ansible_hostname == "db1"
-                                     
- - name: Stop and disable mysqld
-   systemd:
-     name: mysqld
-     enabled: no
-     state: stopped
+   - name: Start MySQL replica with connection name primary-1
+     mysql_replication:
+       mode: startslave
+       login_user: root
+       login_password: '{{ mysql_root_password }}' 
+     when: ansible_hostname == 'websrv2'
 
+
+ 
+   - name: Create new databases wordpress
+     mysql_db:
+       name: wordpress
+       state: present
+       login_user: root
+       login_password: '{{ mysql_root_password }}'
+     when: ansible_hostname == 'websrv1'
+
+
+   - name: CREATE USER wpuser
+     command: mysql -uroot --password='{{ mysql_root_password }}' -e "CREATE USER 'wpuser'@'%' IDENTIFIED WITH mysql_native_password BY '{{ mysql_wpuser_password }}'; GRANT ALL PRIVILEGES ON wordpress.* TO 'wpuser'@'%'; FLUSH PRIVILEGES;"
+     when: ansible_hostname == 'websrv1'
+
+   - name: Create new databases Zabbixdb
+     mysql_db:
+       name: zabbixdb
+       state: present
+       login_user: root
+       login_password: '{{ mysql_root_password }}'
+     when: ansible_hostname == 'websrv1'
+
+
+   - name: CREATE USER zabbix
+     command: mysql -uroot --password='{{ mysql_root_password }}' -e "CREATE USER 'zabbix'@'%' IDENTIFIED WITH mysql_native_password BY '{{ mysql_zabbix_password }}'; GRANT ALL PRIVILEGES ON zabbixdb.* TO 'zabbix'@'%'; FLUSH PRIVILEGES;"
+     when: ansible_hostname == 'websrv1'
+
+
+     
+
+   - name: Place rsyslog configuration
+     template:
+       src: etc/rsyslog.conf
+       dest: /etc/rsyslog.conf
+       owner: root
+       group: root
+
+   - name: rsyslog restart
+     systemd:
+       name: rsyslog
+       state: restarted

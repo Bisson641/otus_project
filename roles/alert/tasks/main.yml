@@ -1,0 +1,153 @@
+---
+
+   - name: Selinux confug
+     ansible.builtin.shell: setsebool -P httpd_can_network_connect on && setsebool -P zabbix_can_network on
+
+
+   - name: download repo
+     get_url:
+      url: https://rpms.remirepo.net/enterprise/remi-release-7.rpm
+      validate_certs: false
+      dest: /tmp
+
+   - name: Install repo
+     yum:
+       name: /tmp/remi-release-7.rpm
+       update_cache: yes
+       state: present
+
+   - name: Install programms
+     yum:
+       name:
+        - yum-utils
+       state: present
+       update_cache: true
+
+
+   - name: yum config manager
+     ansible.builtin.shell: yum-config-manager --enable remi-php74
+
+
+   - name: Install programms
+     yum:
+       name:
+        - httpd
+        - php
+        - php-pear
+        - php-common
+        - php-mbstring
+        - php-snmp
+        - php-pecl-mysql
+        - php-cgi
+        - php-xml
+        - php-cli
+        - php-gettext
+        - php-mysql
+        - php-bcmath
+        - php-gd
+        - php-curl
+        - unzip
+        - mariadb-server
+        - MySQL-python
+       state: present
+
+   - name: Configure firewall http
+     firewalld:
+        service: http
+        permanent: yes
+        state: enabled
+        immediate: yes
+
+   - name: start services
+     tags: services
+     systemd:
+       name: mariadb.service
+       enabled: true
+       masked: no
+       state: started
+
+
+   - name: update mysql root password for all root accounts
+     mysql_user:
+        name: root
+        host: "{{ item }}"
+        password: "{{ mysql_root_password }}"
+        login_user: root
+        login_password: "{{ mysql_root_password }}"
+        check_implicit_admin: yes
+        priv: "*.*:ALL,GRANT"
+     with_items:
+        - "{{ ansible_hostname }}"
+        - 127.0.0.1
+        - ::1
+        - localhost
+
+   - name: Create new databases Zabbixdb
+     mysql_db:
+       name: zabbixdb
+       encoding: utf8
+       collation: utf8_bin
+       state: present
+       login_user: root
+       login_password: '{{ mysql_root_password }}'
+
+
+   - name: CREATE USER zabbix
+     command: mysql -uroot --password='{{ mysql_root_password }}' -e "CREATE USER 'zabbix'@'localhost' IDENTIFIED BY '{{ mysql_zabbix_password }}'; GRANT ALL PRIVILEGES ON zabbixdb.* TO 'zabbix'@'localhost'; FLUSH PRIVILEGES;"
+
+ 
+   - name: zabbix repo
+     ansible.builtin.shell: rpm -ivh https://repo.zabbix.com/zabbix/4.4/rhel/7/x86_64/zabbix-release-4.4-1.el7.noarch.rpm
+
+
+   - name: Install zabbix
+     yum:
+       name:
+        - zabbix-server-mysql
+        - zabbix-web-mysql
+        - zabbix-agent
+        - zabbix-get
+       state: present
+
+   - name: zabbix php.ini
+     template:
+       src: files/php.ini
+       dest: /etc/php.ini
+       owner: apache
+       group: apache
+       mode: 0640
+       force: yes
+
+   - name: zabbix conf.php
+     template:
+       src: files/zabbix.conf.php
+       dest: /etc/zabbix/web/zabbix.conf.php
+       owner: apache
+       group: apache
+       mode: 0640
+       force: yes
+
+   - name: zabbix conf.php
+     template:
+       src: files/zabbix_server.conf
+       dest: /etc/zabbix/zabbix_server.conf
+       owner: apache
+       group: apache
+       mode: 0640
+       force: yes
+   
+
+
+   - name: import Db schema
+     ansible.builtin.shell: zcat /usr/share/doc/zabbix-server-mysql-4.4.10/create.sql.gz | mysql -uzabbix -p'{{ mysql_zabbix_password }}' zabbixdb;
+
+
+
+
+   - name: restart httpd
+     tags: services
+     systemd:
+       name: httpd
+       enabled: true
+       state: restarted
+
